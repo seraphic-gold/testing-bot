@@ -20,13 +20,16 @@ export class Bot {
     this.COMMANDS = [];
   }
 
-  init() {
+  async init() {
     const CLIENT = new Client({ intents: [GatewayIntentBits.Guilds] });
+    CLIENT.commands = new Collection();
     CLIENT.once(Events.ClientReady, (readyClient) => {
       box(`Logged in as ${readyClient.user.tag}`, "round", "Status");
     });
-    this.registerCommands(this.COMMANDS);
-    this.reloadCommands();
+    await this.registerCommands(this.COMMANDS);
+    await this.reloadCommands();
+    await this.registerEvents(CLIENT);
+    CLIENT.commands = this.COMMANDS;
     CLIENT.login(this.TOKEN);
   }
 
@@ -104,6 +107,34 @@ export class Bot {
       );
     } catch (error) {
       console.error(`❌ Error reloading commands: ${error}`);
+    }
+  }
+
+  async registerEvents(client) {
+    const eventsPath = path.join(__dirname, "events");
+    const items = await fs.readdir(eventsPath);
+    const eventFiles = [];
+
+    for (const item of items) {
+      const itemPath = path.join(eventsPath, item);
+      const stats = await fs.stat(itemPath);
+      if (stats.isDirectory()) {
+        // handle subfolders
+        // still todo
+        console.log("Subfolders not yet supported");
+      } else if (stats.isFile() && item.endsWith(".js")) {
+        console.log("File event detected.");
+        eventFiles.push(itemPath);
+      }
+    }
+    for (const file of eventFiles) {
+      const fileURL = pathToFileURL(file).href;
+      const event = await import(fileURL);
+      if (event.once) {
+        client.once(event.name, (...args) => event.execute(...args));
+      } else {
+        client.on(event.name, (...args) => event.execute(...args));
+      }
     }
   }
 }

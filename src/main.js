@@ -5,4 +5,4 @@ config({ quiet: true });
 // bot setup
 import { Bot } from "./bot.js";
 const sold = new Bot(process.env.TOKEN);
-sold.init();
+await sold.init();
