@@ -29,7 +29,9 @@ export class Bot {
     await this.registerCommands(this.COMMANDS);
     await this.reloadCommands();
     await this.registerEvents(CLIENT);
-    CLIENT.commands = this.COMMANDS;
+    this.COMMANDS.forEach((command) =>
+      CLIENT.commands.set(command.data.name, command)
+    );
     CLIENT.login(this.TOKEN);
   }
 
@@ -76,7 +78,7 @@ export class Bot {
 
       if ("data" in command && "execute" in command) {
         // if the command module has data + execute
-        this.COMMANDS.push(command.data.toJSON());
+        this.COMMANDS.push(command);
         console.log(`✅ Loaded command: ${command.data.name}`);
       } else {
         console.log(
@@ -98,7 +100,7 @@ export class Bot {
         "Status"
       );
       await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), {
-        body: this.COMMANDS,
+        body: this.COMMANDS.map((command) => command.data.toJSON()),
       });
       box(
         `✅ Successfully reloaded ${this.COMMANDS.length} application (/) commands.`,
